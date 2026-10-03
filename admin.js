@@ -1,5 +1,5 @@
 // ─────────────────────────────────────────────────────────────────────────────
-// AGROPET NOSSA CASA — PAINEL DO LOJISTA
+// AGROPECUÁRIA CB — PAINEL DO LOJISTA
 // Painel, pedidos, venda no balcão, produtos/estoque, entradas e saídas,
 // cupons e configurações. Os dados ficam no AgroDB (ver dados.js).
 // ─────────────────────────────────────────────────────────────────────────────
@@ -72,7 +72,10 @@
     document.addEventListener("click", (e) => { if (e.target.closest("[data-fechar]")) fecharModal(); });
 
     // ─── LOGIN ───────────────────────────────────────────────────────────────
-    const CHAVE_SESSAO = "agropet_admin_sessao";
+    const CHAVE_SESSAO = "cb_admin_sessao";
+    // A dica da senha de demonstração só aparece enquanto a senha não foi trocada
+    $("#login-dica").hidden = (D.config.senhaAdmin || AGRO_SENHA_PADRAO) !== AGRO_SENHA_PADRAO;
+    $("#login-dica-senha").textContent = AGRO_SENHA_PADRAO;
     const entrar = () => {
         $("#tela-login").hidden = true;
         $("#app").hidden = false;
@@ -82,7 +85,7 @@
     $("#form-login").addEventListener("submit", (e) => {
         e.preventDefault();
         const senha = $("#login-senha").value;
-        if (senha === (D.config.senhaAdmin || "agropet123")) {
+        if (senha === (D.config.senhaAdmin || AGRO_SENHA_PADRAO)) {
             try { sessionStorage.setItem(CHAVE_SESSAO, "1"); } catch (err) { /* ignora */ }
             entrar();
         } else {
@@ -500,7 +503,7 @@
             <button type="button" class="pdv-prod" data-pdv-add="${p.id}" ${estoqueZerado(p) ? "disabled" : ""}>
                 <span class="pdv-prod-topo">${iconeProduto(p)}<strong>${esc(p.nome)}</strong></span>
                 <small>${esc(p.unidade || "")} · ${controlaEstoque(p) ? `${p.estoque} em estoque` : "sem controle"}</small>
-                <span class="preco">${moeda(p.preco)}</span>
+                <span class="preco">${moeda(p.preco)}${agroTemCombo(p) ? ` <small style="color:var(--muted);font-weight:800">· leve ${Number(p.levaQtd)}: ${moeda(agroPrecoCombo(p))} cada</small>` : ""}</span>
             </button>`).join("") || `<p class="vazio-mini">Nenhum produto encontrado.</p>`;
         $("#pdv-pagamento").innerHTML = ["PIX", "Dinheiro", "Cartão de débito", "Cartão de crédito", "Fiado / a receber"].map((f) => `<option>${f}</option>`).join("");
         renderVendaPDV();
@@ -510,11 +513,11 @@
         const itens = vendaPDV.map((v) => ({ ...v, p: produtoPorId(v.id) })).filter((v) => v.p);
         $("#pdv-itens").innerHTML = itens.length ? itens.map(({ p, qtd }) => `
             <div class="pdv-item">
-                <div class="pdv-item-nome">${esc(p.nome)}<small>${moeda(p.preco)} · ${esc(p.unidade || "")}</small></div>
+                <div class="pdv-item-nome">${esc(p.nome)}<small>${moeda(agroPrecoUnit(p, qtd))} cada · ${esc(p.unidade || "")}${agroTemCombo(p) && qtd >= Number(p.levaQtd) ? ` · leve ${Number(p.levaQtd)} aplicado` : ""}</small></div>
                 <div class="qtd"><button type="button" data-pdv-menos="${p.id}">−</button><span>${qtd}</span><button type="button" data-pdv-add="${p.id}">+</button></div>
-                <strong style="min-width:78px;text-align:right">${moeda(p.preco * qtd)}</strong>
+                <strong style="min-width:78px;text-align:right">${moeda(agroTotalItem(p, qtd))}</strong>
             </div>`).join("") : `<p class="vazio-mini">Toque nos produtos ao lado para adicionar.</p>`;
-        const sub = itens.reduce((a, v) => a + v.p.preco * v.qtd, 0);
+        const sub = itens.reduce((a, v) => a + agroTotalItem(v.p, v.qtd), 0);
         const total = Math.max(0, sub - num($("#pdv-desconto").value));
         $("#pdv-total").textContent = moeda(total);
         $("#pdv-finalizar").disabled = !itens.length;
@@ -547,7 +550,7 @@
     $("#pdv-desconto").addEventListener("input", renderVendaPDV);
     $("#pdv-limpar").addEventListener("click", () => { vendaPDV = []; $("#pdv-desconto").value = ""; $("#pdv-cliente").value = ""; renderVendaPDV(); });
     $("#pdv-finalizar").addEventListener("click", () => {
-        const itens = vendaPDV.map((v) => { const p = produtoPorId(v.id); return { id: p.id, nome: p.nome, qtd: v.qtd, preco: p.preco, custo: p.custo }; });
+        const itens = vendaPDV.map((v) => { const p = produtoPorId(v.id); return { id: p.id, nome: p.nome, qtd: v.qtd, preco: agroPrecoUnit(p, v.qtd), custo: p.custo }; });
         if (!itens.length) return;
         const sub = itens.reduce((a, i) => a + i.preco * i.qtd, 0);
         const total = Math.round(Math.max(0, sub - num($("#pdv-desconto").value)) * 100) / 100;
@@ -594,7 +597,7 @@
             const margem = p.preco > 0 && p.custo ? ((p.preco - p.custo) / p.preco) * 100 : null;
             const pillEst = estoqueZerado(p) ? `<span class="pill pill--zerado">Esgotado</span>` : estoqueBaixo(p) ? `<span class="pill pill--baixo">Baixo</span>` : "";
             return `<tr>
-                <td><div class="prod-cel">${iconeProduto(p)}<div>${esc(p.nome)}<small>${esc(p.unidade || "")} · ${esc(agroCodigoProduto(p))}${p.precoAntigo > p.preco ? ` · <span style="color:var(--red)">oferta (de ${moeda(p.precoAntigo)})</span>` : ""}${p.destaque ? " · ★ destaque" : ""}</small></div></div></td>
+                <td><div class="prod-cel">${iconeProduto(p)}<div>${esc(p.nome)}<small>${esc(p.unidade || "")} · ${esc(agroCodigoProduto(p))}${p.precoAntigo > p.preco ? ` · <span style="color:var(--red)">oferta (de ${moeda(p.precoAntigo)})</span>` : ""}${agroTemCombo(p) ? ` · <span style="color:var(--red)">leve ${Number(p.levaQtd)} por ${moeda(p.levaPreco)}</span>` : ""}${p.destaque ? " · ★ destaque" : ""}</small></div></div></td>
                 <td>${esc(c.nome)}</td>
                 <td class="num">${moeda(p.custo || 0)}</td>
                 <td class="num"><input type="number" class="inline-num" step="0.01" min="0" value="${Number(p.preco).toFixed(2)}" data-preco="${p.id}" aria-label="Preço de ${esc(p.nome)}"></td>
@@ -619,6 +622,7 @@
             if (v <= 0) { toast("Preço inválido.", true); t.value = p.preco.toFixed(2); return; }
             p.preco = Math.round(v * 100) / 100;
             if (p.precoAntigo && p.precoAntigo <= p.preco) p.precoAntigo = null;
+            if (p.levaQtd && !agroTemCombo(p)) { p.levaQtd = null; p.levaPreco = null; }
             salvar(); RENDER.produtos(); toast(`Preço de ${esc(p.nome)} atualizado para ${moeda(p.preco)}.`);
         }
         if (t.dataset.estoque) {
@@ -695,7 +699,7 @@
 
     const modalProduto = (p) => {
         const novo = !p;
-        p = p || { nome: "", unidade: "", categoria: D.categorias[0]?.id || "", codigo: "", preco: "", precoAntigo: null, custo: "", estoque: "", estoqueMin: 3, descricao: "", imagem: "", destaque: false, ativo: true };
+        p = p || { nome: "", unidade: "", categoria: D.categorias[0]?.id || "", codigo: "", preco: "", precoAntigo: null, levaQtd: null, levaPreco: null, custo: "", estoque: "", estoqueMin: 3, descricao: "", imagem: "", destaque: false, ativo: true };
         abrirModal({
             titulo: novo ? "Novo produto" : "Editar produto",
             largura: 680,
@@ -713,6 +717,11 @@
                 </div>
                 <p class="campo-ajuda" id="p-margem" style="margin:-4px 0 12px"></p>
                 <div class="campo-linha">
+                    <label class="campo"><span>Promoção “leve mais” <em>(quantidade)</em></span><input type="number" step="1" min="2" id="p-leva-qtd" value="${p.levaQtd || ""}" placeholder="Ex.: 2"></label>
+                    <label class="campo"><span>Preço total dessa quantidade (R$)</span><input type="number" step="0.01" min="0" id="p-leva-preco" value="${p.levaPreco || ""}" placeholder="Ex.: 345,90"></label>
+                </div>
+                <p class="campo-ajuda" id="p-leva-info" style="margin:-4px 0 12px">Opcional. Ex.: “Ou leve 2 und. por 345,90”. Deixe vazio se não houver.</p>
+                <div class="campo-linha">
                     <label class="campo"><span>Estoque atual</span><input type="number" step="1" min="0" id="p-estoque" value="${controlaEstoque(p) ? p.estoque : ""}" placeholder="Vazio = não controlar"></label>
                     <label class="campo"><span>Avisar quando chegar a</span><input type="number" step="1" min="0" id="p-min" value="${p.estoqueMin ?? ""}"></label>
                 </div>
@@ -729,15 +738,30 @@
         };
         ["#p-preco", "#p-custo"].forEach((s) => $(s).addEventListener("input", atualizarMargem));
         atualizarMargem();
+        const lerCombo = () => {
+            const q = Math.round(num($("#p-leva-qtd").value)), v = num($("#p-leva-preco").value), pr = num($("#p-preco").value);
+            return { q, v, vazio: !q && !v, valido: q >= 2 && v > 0 && pr > 0 && v / q < pr };
+        };
+        const atualizarCombo = () => {
+            const c = lerCombo(), info = $("#p-leva-info");
+            if (c.vazio) info.textContent = "Opcional. Ex.: “Ou leve 2 und. por 345,90”. Deixe vazio se não houver.";
+            else if (c.valido) info.textContent = `Na loja: “Ou leve ${c.q} und. por ${moeda(c.v)}, saindo cada und. por ${moeda(Math.round((c.v / c.q) * 100) / 100)}”.`;
+            else info.textContent = "Para valer, informe 2 ou mais unidades e um total que deixe cada unidade mais barata que o preço de venda.";
+        };
+        ["#p-preco", "#p-leva-qtd", "#p-leva-preco"].forEach((s) => $(s).addEventListener("input", atualizarCombo));
+        atualizarCombo();
         $("#p-salvar").onclick = () => {
             const nome = $("#p-nome").value.trim(), preco = num($("#p-preco").value);
             $("#p-nome").classList.toggle("erro", !nome);
             $("#p-preco").classList.toggle("erro", preco <= 0);
             if (!nome || preco <= 0) { toast("Preencha nome e preço.", true); return; }
             const antigo = num($("#p-antigo").value);
+            const combo = lerCombo();
+            if (!combo.vazio && !combo.valido) { $("#p-leva-qtd").classList.add("erro"); $("#p-leva-preco").classList.add("erro"); toast("Confira a promoção “leve mais”.", true); return; }
             const dadosP = {
                 nome, unidade: $("#p-unidade").value.trim(), categoria: $("#p-categoria").value, codigo: $("#p-codigo").value.trim(),
                 preco: Math.round(preco * 100) / 100, precoAntigo: antigo > preco ? Math.round(antigo * 100) / 100 : null,
+                levaQtd: combo.valido ? combo.q : null, levaPreco: combo.valido ? Math.round(combo.v * 100) / 100 : null,
                 custo: num($("#p-custo").value), estoque: $("#p-estoque").value === "" ? null : Math.max(0, Math.round(num($("#p-estoque").value))),
                 estoqueMin: Math.round(num($("#p-min").value)), descricao: $("#p-desc").value.trim(), imagem: $("#p-foto-valor").value,
                 destaque: $("#p-destaque").checked, ativo: $("#p-ativo").checked,
@@ -810,6 +834,7 @@
             a.forEach((p) => {
                 p.preco = novoPreco(p.preco);
                 if (p.precoAntigo) p.precoAntigo = p.precoAntigo > p.preco ? novoPreco(p.precoAntigo) : null;
+                if (p.levaPreco) { p.levaPreco = novoPreco(p.levaPreco); if (!agroTemCombo(p)) { p.levaQtd = null; p.levaPreco = null; } }
                 if ($("#rj-custo").checked && p.custo) p.custo = Math.round(p.custo * (1 + pct / 100) * 100) / 100;
             });
             salvar(); fecharModal(); RENDER.produtos(); toast(`${a.length} preços reajustados.`);
@@ -848,7 +873,7 @@
             if (qtd) { toast(`Há ${qtd} produtos em "${esc(c.nome)}". Mude a categoria deles antes de excluir.`, true); return; }
             D.categorias.splice(Number(b.dataset.catDel), 1); salvar(); lista.innerHTML = linhas();
         });
-        $("#cat-add").onclick = () => { D.categorias.push({ id: `cat${Date.now().toString(36)}`, nome: "Nova categoria", icone: "fa-paw", cor: "#2D2A7B" }); salvar(); lista.innerHTML = linhas(); };
+        $("#cat-add").onclick = () => { D.categorias.push({ id: `cat${Date.now().toString(36)}`, nome: "Nova categoria", icone: "fa-paw", cor: "#0D0B1E" }); salvar(); lista.innerHTML = linhas(); };
         $("#cat-ok").onclick = () => { fecharModal(); RENDER.produtos(); };
     });
 
@@ -1068,6 +1093,12 @@
                     ${campo("retiradaHoraFim", "Até", c.retiradaHoraFim, "time")}
                     <label class="campo"><span>Intervalo</span><select id="cf-retiradaIntervalo">${[15, 30, 60].map((m) => `<option value="${m}" ${Number(c.retiradaIntervalo) === m ? "selected" : ""}>${m} min</option>`).join("")}</select></label>
                 </div>
+                <div class="campo-linha">
+                    ${campo("retiradaPausaInicio", "Fecha ao meio-dia das", c.retiradaPausaInicio || "", "time")}
+                    ${campo("retiradaPausaFim", "Reabre às", c.retiradaPausaFim || "", "time")}
+                </div>
+                <div class="linha-switch"><label class="switch"><input type="checkbox" id="cf-retiradaSabadoSemPausa" ${c.retiradaSabadoSemPausa ? "checked" : ""}><span></span></label> Sábado não fecha ao meio-dia</div>
+                <p class="campo-ajuda" style="margin:-2px 0 12px">Os horários do intervalo não aparecem para o cliente agendar a retirada. Deixe os dois campos vazios se a loja não fecha.</p>
                 <h3 style="margin-top:8px"><i class="fa-solid fa-wallet"></i> Pagamento</h3>
                 <div class="campo"><span>Formas aceitas</span><div class="checks">${FORMAS.map((f) => `<label class="check"><input type="checkbox" class="cf-forma" value="${f}" ${(c.formasPagamento || []).includes(f) ? "checked" : ""}> ${f}</label>`).join("")}</div></div>
                 <label class="campo"><span>Aviso sobre o pagamento</span><textarea id="cf-avisoPagamento" rows="3">${esc(c.avisoPagamento || "")}</textarea></label>
@@ -1092,7 +1123,7 @@
         $("#cf-exportar").onclick = () => {
             const blob = new Blob([JSON.stringify(D, null, 2)], { type: "application/json" });
             const a = document.createElement("a");
-            a.href = URL.createObjectURL(blob); a.download = `backup-agropet-${hojeChave()}.json`; a.click();
+            a.href = URL.createObjectURL(blob); a.download = `backup-agropecuaria-cb-${hojeChave()}.json`; a.click();
             setTimeout(() => URL.revokeObjectURL(a.href), 1000);
             toast("Backup baixado.");
         };
@@ -1122,6 +1153,7 @@
             bairros: $$("#cf-bairros .bairro-linha").map((l) => ({ nome: $(".bairro-nome", l).value.trim(), taxa: $(".bairro-taxa", l).value === "" ? null : num($(".bairro-taxa", l).value) })).filter((b) => b.nome),
             retiradaDias: $$(".cf-dia:checked").map((x) => Number(x.value)),
             retiradaHoraInicio: v("retiradaHoraInicio") || "08:00", retiradaHoraFim: v("retiradaHoraFim") || "18:00", retiradaIntervalo: Number($("#cf-retiradaIntervalo").value),
+            retiradaPausaInicio: v("retiradaPausaInicio"), retiradaPausaFim: v("retiradaPausaFim"), retiradaSabadoSemPausa: $("#cf-retiradaSabadoSemPausa").checked,
             formasPagamento: $$(".cf-forma:checked").map((x) => x.value), avisoPagamento: v("avisoPagamento"), senhaAdmin: v("senhaAdmin"),
         });
         if (!c.formasPagamento.length) c.formasPagamento = ["PIX"];

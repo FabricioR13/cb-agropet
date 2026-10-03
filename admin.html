@@ -5,12 +5,12 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta name="robots" content="noindex" />
-    <meta name="theme-color" content="#2D2A7B" />
-    <title>Painel · Agropet Nossa Casa</title>
-    <link rel="icon" href="assets/logo-agropet.webp" type="image/webp" />
+    <meta name="theme-color" content="#0D0B1E" />
+    <title>Painel · Agropecuária CB</title>
+    <link rel="icon" href="assets/logo-cb.webp" type="image/webp" />
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Titan+One&family=Nunito:wght@400;600;700;800;900&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@800;900&family=Nunito:wght@400;600;700;800;900&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
     <link rel="stylesheet" href="admin.css" />
 </head>
@@ -19,7 +19,7 @@
     <!-- ═══════════ LOGIN ═══════════ -->
     <div class="login" id="tela-login">
         <form class="login-card" id="form-login" autocomplete="off">
-            <img src="assets/logo-agropet.webp" alt="" class="login-logo" id="login-logo">
+            <img src="assets/logo-cb.webp" alt="" class="login-logo" id="login-logo">
             <h1>Área do lojista</h1>
             <p>Gerencie produtos, preços, pedidos e o caixa da loja.</p>
             <label class="campo">
@@ -28,7 +28,7 @@
             </label>
             <p class="login-erro" id="login-erro"></p>
             <button type="submit" class="btn btn-primario btn-bloco"><i class="fa-solid fa-right-to-bracket"></i> Entrar</button>
-            <p class="login-dica">Senha de demonstração: <strong>agropet123</strong> (troque em Configurações)</p>
+            <p class="login-dica" id="login-dica">Senha de demonstração: <strong id="login-dica-senha">cb2026</strong> (troque em Configurações)</p>
             <a href="index.html" class="login-voltar"><i class="fa-solid fa-arrow-left"></i> Voltar para a loja</a>
         </form>
     </div>
@@ -37,8 +37,8 @@
     <div class="app" id="app" hidden>
         <aside class="lateral">
             <div class="lateral-marca">
-                <img src="assets/logo-agropet.webp" alt="" id="lateral-logo">
-                <div><strong id="lateral-nome">Agropet Nossa Casa</strong><small>Painel da loja</small></div>
+                <img src="assets/logo-cb.webp" alt="" id="lateral-logo">
+                <div><strong id="lateral-nome">Agropecuária CB</strong><small>Painel da loja</small></div>
             </div>
             <nav class="menu" id="menu">
                 <button type="button" data-aba="painel" class="ativo"><i class="fa-solid fa-chart-pie"></i><span>Painel</span></button>

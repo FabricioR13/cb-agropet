@@ -1,5 +1,5 @@
 // ─────────────────────────────────────────────────────────────────────────────
-// AGROPET NOSSA CASA — VITRINE
+// AGROPECUÁRIA CB — VITRINE
 // Os dados (produtos, categorias, configurações, cupons) vêm do dados.js,
 // através do AgroDB. A sacolinha fica salva no navegador do cliente e o pedido
 // é finalizado no WhatsApp da loja.
@@ -16,7 +16,8 @@ document.addEventListener("DOMContentLoaded", () => {
     let cfg = dados.config;
     let produtos = [];
     let categorias = [];
-    const CHAVE_SACOLA = "agropet_sacolinha_v1";
+    const CHAVE_SACOLA = "cb_sacolinha_v1";
+    const MAX_MEGA_PROMOCAO = 5;
 
     const estado = {
         categoria: "todas",
@@ -49,32 +50,41 @@ document.addEventListener("DOMContentLoaded", () => {
     };
 
     // ─── AUXILIARES ──────────────────────────────────────────────────────────
-    const categoriaDe = (id) => categorias.find((c) => c.id === id) || { id, nome: "Outros", icone: "fa-paw", cor: "#2D2A7B" };
+    const categoriaDe = (id) => categorias.find((c) => c.id === id) || { id, nome: "Outros", icone: "fa-paw", cor: "#0D0B1E" };
     const produtoPorId = (id) => produtos.find((p) => p.id === id);
     const temEstoqueControlado = (p) => p.estoque !== undefined && p.estoque !== null && p.estoque !== "";
     const esgotado = (p) => temEstoqueControlado(p) && Number(p.estoque) <= 0;
     const emOferta = (p) => p.precoAntigo && Number(p.precoAntigo) > Number(p.preco);
+    const emPromo = (p) => emOferta(p) || agroTemCombo(p);
     const descontoPct = (p) => Math.round((1 - p.preco / p.precoAntigo) * 100);
     const linkWhats = (texto) => `https://wa.me/${cfg.whatsapp}${texto ? `?text=${encodeURIComponent(texto)}` : ""}`;
     const qtdNaSacola = (id) => (estado.sacola.find((i) => i.id === id) || {}).qtd || 0;
 
-    // Arte do produto no estilo das postagens (cor da categoria + patinhas +
-    // logo no canto + selo de peso + estrela de oferta). Se o lojista cadastrou
-    // uma foto, ela aparece no lugar do ícone.
+    // Arte do produto: a foto cadastrada pelo lojista ou, sem foto, o ícone da
+    // categoria dentro de um círculo amarelo-limão com aro preto (como o logo).
     const arteProduto = (p) => {
         const cat = categoriaDe(p.categoria);
-        const logo = cfg.logoUrl ? `<img class="arte-logo" src="${esc(cfg.logoUrl)}" alt="" loading="lazy">` : "";
         const unidade = p.unidade ? `<span class="arte-unidade">${esc(p.unidade)}</span>` : "";
-        const estrela = emOferta(p) ? `<span class="estrela"><span>${descontoPct(p)}%<small>OFF</small></span></span>` : "";
-        if (p.imagem) {
-            return `<div class="arte arte--foto" style="--cor:${cat.cor}">
-                <img class="arte-foto" src="${esc(p.imagem)}" alt="${esc(p.nome)}" loading="lazy">
-                ${logo}${unidade}${estrela}</div>`;
-        }
-        return `<div class="arte" style="--cor:${cat.cor}">
-            <span class="arte-nome">${esc(p.nome)}</span>
-            <span class="arte-icone"><i class="fa-solid ${esc(cat.icone)}" aria-hidden="true"></i></span>
-            ${logo}${unidade}${estrela}</div>`;
+        const miolo = p.imagem
+            ? `<img class="arte-foto" src="${esc(p.imagem)}" alt="${esc(p.nome)}" loading="lazy">`
+            : `<span class="arte-icone"><i class="fa-solid ${esc(cat.icone)}" aria-hidden="true"></i></span>`;
+        return `<div class="arte">${miolo}${unidade}</div>`;
+    };
+
+    // Faixa amarela do topo, igual às artes do Instagram: "MEGA PROMOÇÃO" nos
+    // produtos em oferta; nos demais, o nome da categoria.
+    const faixaProduto = (p) => (emPromo(p)
+        ? `<div class="card-faixa"><strong>Mega promoção</strong><small>Oferta válida até acabar o estoque</small></div>`
+        : `<div class="card-faixa"><strong>${esc(categoriaDe(p.categoria).nome)}</strong></div>`);
+
+    // Preços no formato "De 192,90 / Por 182,90 a und. / Ou leve 2 und. por 345,90"
+    const precosProduto = (p) => {
+        const de = emOferta(p) ? `<span class="preco-de">De <s>${moeda(p.precoAntigo)}</s></span>` : "";
+        const por = `<span class="preco-por">${emOferta(p) ? "<em>Por</em>" : ""}<span class="preco">${moeda(p.preco)}</span>${emOferta(p) || agroTemCombo(p) ? "<small>a und.</small>" : ""}</span>`;
+        const leve = agroTemCombo(p)
+            ? `<span class="preco-leve">Ou leve ${Number(p.levaQtd)} und. por <b>${moeda(p.levaPreco)}</b>, saindo cada und. por <b>${moeda(agroPrecoCombo(p))}</b></span>`
+            : "";
+        return `<div class="precos">${de}${por}${leve}</div>`;
     };
 
     // ─── TOAST ───────────────────────────────────────────────────────────────
@@ -92,6 +102,7 @@ document.addEventListener("DOMContentLoaded", () => {
     // ─── CONFIGURAÇÕES DA LOJA ───────────────────────────────────────────────
     const aplicarConfig = () => {
         document.title = `${cfg.nomeLoja} · Catálogo`;
+        $("#logo-img").alt = cfg.nomeLoja;
         $("#nome-loja").textContent = cfg.nomeLoja;
         $("#slogan-loja").textContent = cfg.slogan || "";
         if (cfg.logoUrl) { $("#logo-img").src = cfg.logoUrl; $("#loja-logo").src = cfg.logoUrl; }
@@ -133,7 +144,9 @@ document.addEventListener("DOMContentLoaded", () => {
 
         // Dias de retirada
         const nomesDias = ["dom", "seg", "ter", "qua", "qui", "sex", "sáb"];
-        $("#ret-dias-info").textContent = `Retiradas: ${(cfg.retiradaDias || []).map((d) => nomesDias[d]).join(", ")} · ${cfg.retiradaHoraInicio} às ${cfg.retiradaHoraFim}`;
+        const temPausa = cfg.retiradaPausaInicio && cfg.retiradaPausaFim;
+        $("#ret-dias-info").textContent = `Retiradas: ${(cfg.retiradaDias || []).map((d) => nomesDias[d]).join(", ")} · ${cfg.retiradaHoraInicio} às ${cfg.retiradaHoraFim}`
+            + (temPausa ? ` · fechado das ${cfg.retiradaPausaInicio} às ${cfg.retiradaPausaFim}${cfg.retiradaSabadoSemPausa ? " (sábado não fecha ao meio-dia)" : ""}` : "");
         const hoje = new Date();
         const hojeISO = new Date(hoje.getTime() - hoje.getTimezoneOffset() * 60000).toISOString().slice(0, 10);
         $("#ret-data").min = hojeISO;
@@ -144,33 +157,42 @@ document.addEventListener("DOMContentLoaded", () => {
 
     // ─── CATEGORIAS ──────────────────────────────────────────────────────────
     const renderCategorias = () => {
-        const chip = (id, nome, icone, cor) => `
-            <button type="button" class="chip${estado.categoria === id ? " ativo" : ""}" data-cat="${esc(id)}" style="--cor:${cor}">
+        const chip = (id, nome, icone, extra = "") => `
+            <button type="button" class="chip${extra}${estado.categoria === id ? " ativo" : ""}" data-cat="${esc(id)}">
                 <span class="chip-icone"><i class="fa-solid ${esc(icone)}"></i></span>${esc(nome)}
             </button>`;
         const usadas = categorias.filter((c) => produtos.some((p) => p.categoria === c.id));
-        $("#categorias-bar").innerHTML = chip("todas", "Todos", "fa-paw", "#2D2A7B")
-            + (produtos.some(emOferta) ? chip("ofertas", "Ofertas", "fa-bolt", "#D62828") : "")
-            + usadas.map((c) => chip(c.id, c.nome, c.icone, c.cor)).join("");
+        $("#categorias-bar").innerHTML = chip("todas", "Todos", "fa-paw")
+            + (produtos.some(emPromo) ? chip("ofertas", "Promoções", "fa-bolt", " chip--oferta") : "")
+            + usadas.map((c) => chip(c.id, c.nome, c.icone)).join("");
     };
 
     // ─── HERO: OFERTA DA SEMANA ──────────────────────────────────────────────
     const renderHeroDestaque = () => {
         const candidatos = produtos.filter((p) => !esgotado(p));
-        const p = candidatos.find((x) => x.destaque && emOferta(x)) || candidatos.find(emOferta) || candidatos.find((x) => x.destaque) || candidatos[0];
+        const p = candidatos.find((x) => x.destaque && emPromo(x)) || candidatos.find(emPromo) || candidatos.find((x) => x.destaque) || candidatos[0];
         const box = $("#hero-destaque");
         if (!p) { box.innerHTML = ""; return; }
+        const promo = emPromo(p);
+        const contato = [cfg.telefoneExibicao, cfg.instagram ? `@${cfg.instagram}` : ""].filter(Boolean).join(" · ");
         box.innerHTML = `
-            <span class="post-destaque-rotulo">Oferta da semana</span>
-            <article class="post-destaque" data-abrir="${p.id}" tabindex="0" role="button" aria-label="Ver ${esc(p.nome)}">
-                ${arteProduto(p)}
-                <div class="post-destaque-info">
-                    <div><h3>${esc(p.nome)}</h3><small>${esc(p.unidade || "")}</small></div>
-                    <div style="text-align:right">
-                        ${emOferta(p) ? `<div class="preco-antigo">${moeda(p.precoAntigo)}</div>` : ""}
-                        <div class="preco">${moeda(p.preco)}</div>
+            <article class="post" data-abrir="${p.id}" tabindex="0" role="button" aria-label="Ver ${esc(p.nome)}">
+                <header class="post-faixa">
+                    <strong>${promo ? "Mega promoção" : "Destaque da loja"}</strong>
+                    <small>${promo ? "Oferta válida até acabar o estoque" : esc(categoriaDe(p.categoria).nome)}</small>
+                </header>
+                <div class="post-corpo">
+                    ${arteProduto(p)}
+                    <div class="post-info">
+                        <h3>${esc(p.nome)}</h3>
+                        <span class="card-unidade">${esc(p.unidade || "")}</span>
+                        ${precosProduto(p)}
                     </div>
                 </div>
+                <footer class="post-rodape">
+                    ${cfg.logoUrl ? `<img src="${esc(cfg.logoUrl)}" alt="">` : ""}
+                    <span class="pilula"><b>${esc(contato)}</b><small>${cfg.entregaDisponivel === false ? "Retire na loja" : "Temos tele-entrega"}</small></span>
+                </footer>
             </article>`;
     };
 
@@ -183,35 +205,44 @@ document.addEventListener("DOMContentLoaded", () => {
         let acao;
         if (sem) acao = `<span class="tag-esgotado">Esgotado</span>`;
         else if (qtd > 0) acao = `<div class="qtd-seletor"><button type="button" data-menos="${p.id}" aria-label="Diminuir">−</button><span>${qtd}</span><button type="button" data-mais="${p.id}" aria-label="Aumentar">+</button></div>`;
-        else acao = `<button type="button" class="btn btn-vermelho" data-add="${p.id}"><i class="fa-solid fa-bag-shopping"></i> Adicionar</button>`;
+        else acao = `<button type="button" class="btn btn-preto" data-add="${p.id}"><i class="fa-solid fa-bag-shopping"></i> Adicionar</button>`;
         return `
             <article class="card${sem ? " card--esgotado" : ""}" style="animation-delay:${Math.min(indice, 12) * 30}ms">
-                <button type="button" class="card-arte" data-abrir="${p.id}" aria-label="Ver detalhes de ${esc(p.nome)}" style="position:relative">
+                ${faixaProduto(p)}
+                <button type="button" class="card-arte" data-abrir="${p.id}" aria-label="Ver detalhes de ${esc(p.nome)}">
                     ${arteProduto(p)}
+                    ${p.destaque ? `<span class="card-selo-destaque">★ Destaque</span>` : ""}
                 </button>
                 <div class="card-info">
-                    <div class="card-topo"><span class="card-cat" style="color:${cat.cor}">${esc(cat.nome)}</span>${p.destaque ? `<span class="card-selo-destaque">★ Destaque</span>` : ""}</div>
                     <h3 class="card-nome" data-abrir="${p.id}">${esc(p.nome)}</h3>
-                    <span class="card-unidade">${esc(p.unidade || "")}</span>
-                    <div class="card-precos">
-                        <span class="preco">${moeda(p.preco)}</span>
-                        ${emOferta(p) ? `<span class="preco-antigo">${moeda(p.precoAntigo)}</span>` : ""}
-                    </div>
+                    ${emPromo(p) ? `<span class="card-unidade">${esc(cat.nome)}</span>` : ""}
+                    <div class="card-precos">${precosProduto(p)}</div>
                     ${poucas ? `<span class="card-estoque"><i class="fa-solid fa-fire"></i> Últimas ${p.estoque} unidades</span>` : ""}
-                    <div class="card-acao">${acao}</div>
                 </div>
+                <div class="card-acao">${acao}</div>
             </article>`;
     };
 
     const renderOfertas = () => {
-        const ofertas = produtos.filter((p) => emOferta(p) && !esgotado(p));
+        // A seção "Mega promoção" mostra no máximo 5 itens: primeiro os marcados
+        // como destaque, depois os de maior desconto. As demais promoções continuam
+        // na lista de produtos e no filtro "Promoções".
+        const ofertas = produtos.filter((p) => emPromo(p) && !esgotado(p))
+            .sort((a, b) => (b.destaque ? 1 : 0) - (a.destaque ? 1 : 0) || (emOferta(b) ? descontoPct(b) : 0) - (emOferta(a) ? descontoPct(a) : 0))
+            .slice(0, MAX_MEGA_PROMOCAO);
         $("#ofertas").hidden = ofertas.length === 0;
         $("#carrossel-ofertas").innerHTML = ofertas.map(cardProduto).join("");
+        ajustarSetas();
+    };
+    // As setas só aparecem quando há mais cartões do que cabe na tela
+    const ajustarSetas = () => {
+        const car = $("#carrossel-ofertas");
+        $(".carrossel-setas").hidden = car.scrollWidth <= car.clientWidth + 4;
     };
 
     const renderProdutos = () => {
         let lista = [...produtos];
-        if (estado.categoria === "ofertas") lista = lista.filter(emOferta);
+        if (estado.categoria === "ofertas") lista = lista.filter(emPromo);
         else if (estado.categoria !== "todas") lista = lista.filter((p) => p.categoria === estado.categoria);
 
         const termo = estado.busca.trim().toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "");
@@ -224,7 +255,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
         const esg = (p) => (esgotado(p) ? 1 : 0);
         const ordens = {
-            destaque: (a, b) => esg(a) - esg(b) || (b.destaque ? 1 : 0) - (a.destaque ? 1 : 0) || (emOferta(b) ? 1 : 0) - (emOferta(a) ? 1 : 0),
+            destaque: (a, b) => esg(a) - esg(b) || (b.destaque ? 1 : 0) - (a.destaque ? 1 : 0) || (emPromo(b) ? 1 : 0) - (emPromo(a) ? 1 : 0),
             menor: (a, b) => esg(a) - esg(b) || a.preco - b.preco,
             maior: (a, b) => esg(a) - esg(b) || b.preco - a.preco,
             ofertas: (a, b) => esg(a) - esg(b) || (emOferta(b) ? descontoPct(b) : 0) - (emOferta(a) ? descontoPct(a) : 0),
@@ -232,7 +263,7 @@ document.addEventListener("DOMContentLoaded", () => {
         };
         lista.sort(ordens[estado.ordem] || ordens.destaque);
 
-        const titulo = estado.categoria === "todas" ? "Todos os produtos" : estado.categoria === "ofertas" ? "Ofertas" : categoriaDe(estado.categoria).nome;
+        const titulo = estado.categoria === "todas" ? "Todos os produtos" : estado.categoria === "ofertas" ? "Promoções" : categoriaDe(estado.categoria).nome;
         $("#titulo-lista").textContent = estado.busca.trim() ? `Resultados para “${estado.busca.trim()}”` : titulo;
         $("#contador-produtos").textContent = `${lista.length} ${lista.length === 1 ? "produto" : "produtos"}`;
 
@@ -256,7 +287,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
     const calcular = () => {
         const itens = itensSacola();
-        const subtotal = itens.reduce((a, i) => a + i.qtd * i.produto.preco, 0);
+        const subtotal = Math.round(itens.reduce((a, i) => a + agroTotalItem(i.produto, i.qtd), 0) * 100) / 100;
         let desconto = 0;
         if (estado.cupom) {
             if (estado.cupom.valorMinimo && subtotal < estado.cupom.valorMinimo) {
@@ -289,18 +320,21 @@ document.addEventListener("DOMContentLoaded", () => {
         const c = calcular();
         const lista = $("#lista-itens");
         if (!c.itens.length) {
-            lista.innerHTML = `<div class="sacola-vazia"><i class="fa-solid fa-bag-shopping"></i><strong>Sua sacolinha está vazia</strong><p>Que tal começar pelas ofertas da semana?</p><button type="button" class="btn btn-vermelho" id="btn-ir-ofertas"><i class="fa-solid fa-bolt"></i> Ver ofertas</button></div>`;
-            $("#btn-ir-ofertas").onclick = () => { fecharSacolinha(); document.getElementById(produtos.some(emOferta) ? "ofertas" : "produtos").scrollIntoView(); };
+            lista.innerHTML = `<div class="sacola-vazia"><i class="fa-solid fa-bag-shopping"></i><strong>Sua sacolinha está vazia</strong><p>Que tal começar pelas promoções da semana?</p><button type="button" class="btn btn-preto" id="btn-ir-ofertas"><i class="fa-solid fa-bolt"></i> Ver promoções</button></div>`;
+            $("#btn-ir-ofertas").onclick = () => { fecharSacolinha(); document.getElementById(produtos.some(emPromo) ? "ofertas" : "produtos").scrollIntoView(); };
         } else {
             lista.innerHTML = c.itens.map(({ produto: p, qtd }) => `
                 <div class="item">
                     ${arteProduto(p)}
                     <div class="item-info">
                         <p class="item-nome">${esc(p.nome)}</p>
-                        <p class="item-unidade">${esc(p.unidade || "")} · ${moeda(p.preco)} cada</p>
+                        <p class="item-unidade">${esc(p.unidade || "")} · ${moeda(agroPrecoUnit(p, qtd))} cada</p>
+                        ${agroTemCombo(p) ? (qtd >= Number(p.levaQtd)
+                            ? `<span class="item-combo item-combo--ok"><i class="fa-solid fa-check"></i> Preço do “leve ${Number(p.levaQtd)}” aplicado</span>`
+                            : `<span class="item-combo">Leve ${Number(p.levaQtd)} e pague ${moeda(agroPrecoCombo(p))} cada</span>`) : ""}
                         <div class="item-rodape">
                             <div class="qtd-seletor"><button type="button" data-menos="${p.id}" aria-label="Diminuir">−</button><span>${qtd}</span><button type="button" data-mais="${p.id}" aria-label="Aumentar">+</button></div>
-                            <strong class="item-preco">${moeda(p.preco * qtd)}</strong>
+                            <strong class="item-preco">${moeda(agroTotalItem(p, qtd))}</strong>
                         </div>
                     </div>
                     <button type="button" class="item-remover" data-remover="${p.id}" aria-label="Remover ${esc(p.nome)}"><i class="fa-solid fa-xmark"></i></button>
@@ -404,10 +438,19 @@ document.addEventListener("DOMContentLoaded", () => {
         const ehHoje = dataStr && dataStr === new Date(agora.getTime() - agora.getTimezoneOffset() * 60000).toISOString().slice(0, 10);
         const minAgora = agora.getHours() * 60 + agora.getMinutes() + 30; // 30 min pra separar o pedido
         const anterior = sel.value;
+        // A loja fecha ao meio-dia (seg a sex); no sábado não fecha.
+        const paraMin = (t) => { const [h, mi] = String(t).split(":").map(Number); return h * 60 + (mi || 0); };
+        let pausaIni = null, pausaFim = null;
+        if (cfg.retiradaPausaInicio && cfg.retiradaPausaFim) {
+            let diaSemana = null;
+            if (dataStr) { const [a, me, d] = dataStr.split("-").map(Number); diaSemana = new Date(a, me - 1, d).getDay(); }
+            if (!(cfg.retiradaSabadoSemPausa && diaSemana === 6)) { pausaIni = paraMin(cfg.retiradaPausaInicio); pausaFim = paraMin(cfg.retiradaPausaFim); }
+        }
         let html = `<option value="">Selecione</option>`;
         let algum = false;
         for (let m = hI * 60 + mI; m <= hF * 60 + mF; m += passo) {
             if (ehHoje && m < minAgora) continue;
+            if (pausaIni !== null && m >= pausaIni && m < pausaFim) continue;
             const hh = `${String(Math.floor(m / 60)).padStart(2, "0")}:${String(m % 60).padStart(2, "0")}`;
             html += `<option value="${hh}">${hh}</option>`;
             algum = true;
@@ -484,7 +527,7 @@ document.addEventListener("DOMContentLoaded", () => {
             const b = (cfg.bairros || [])[Number($("#ent-bairro").value)] || {};
             const comp = $("#ent-complemento").value.trim(), ref = $("#ent-referencia").value.trim();
             return {
-                titulo: "Entrega",
+                titulo: "Tele-entrega",
                 linhas: [`${$("#ent-rua").value.trim()}, nº ${$("#ent-numero").value.trim()}${comp ? ` — ${comp}` : ""}`, `Bairro: ${b.nome || ""}`, ref ? `Referência: ${ref}` : ""].filter(Boolean),
             };
         }
@@ -506,7 +549,7 @@ document.addEventListener("DOMContentLoaded", () => {
         $("#resumo").innerHTML = `
             <div class="resumo-bloco">
                 <h5>Itens (${c.qtdItens}) <button type="button" data-ir="1">Alterar</button></h5>
-                <ul>${c.itens.map(({ produto: p, qtd }) => `<li><span>${qtd}x ${esc(p.nome)} <small style="color:var(--muted)">${esc(p.unidade || "")}</small></span><span>${moeda(p.preco * qtd)}</span></li>`).join("")}</ul>
+                <ul>${c.itens.map(({ produto: p, qtd }) => `<li><span>${qtd}x ${esc(p.nome)} <small style="color:var(--muted)">${esc(p.unidade || "")}</small></span><span>${moeda(agroTotalItem(p, qtd))}</span></li>`).join("")}</ul>
             </div>
             <div class="resumo-bloco">
                 <h5>${ent.titulo} <button type="button" data-ir="2">Alterar</button></h5>
@@ -569,7 +612,7 @@ document.addEventListener("DOMContentLoaded", () => {
     // ─── FINALIZAR NO WHATSAPP ───────────────────────────────────────────────
     const gerarCodigo = () => {
         const L = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
-        let s = "AG";
+        let s = "CB";
         for (let i = 0; i < 6; i++) s += L[Math.floor(Math.random() * L.length)];
         return s;
     };
@@ -582,14 +625,14 @@ document.addEventListener("DOMContentLoaded", () => {
             `Pedido: *#${codigo}*`,
             "",
             "*Itens:*",
-            ...c.itens.map(({ produto: p, qtd }) => `• ${qtd}x ${p.nome}${p.unidade ? ` (${p.unidade})` : ""} — ${moeda(p.preco * qtd)} [${agroCodigoProduto(p)}]`),
+            ...c.itens.map(({ produto: p, qtd }) => `• ${qtd}x ${p.nome}${p.unidade ? ` (${p.unidade})` : ""} — ${moeda(agroTotalItem(p, qtd))} [${agroCodigoProduto(p)}]`),
             "",
             `Subtotal: ${moeda(c.subtotal)}`,
         ];
         if (c.desconto > 0) linhas.push(`Desconto (${estado.cupom.codigo}): - ${moeda(c.desconto)}`);
         if (estado.tipoEntrega === "entrega") linhas.push(`Entrega: ${c.taxaTexto}`);
         linhas.push(`*Total: ${moeda(c.total)}*`, "");
-        linhas.push(estado.tipoEntrega === "entrega" ? "🚚 *Entrega*" : "🏪 *Retirada na loja*");
+        linhas.push(estado.tipoEntrega === "entrega" ? "🚚 *Tele-entrega*" : "🏪 *Retirada na loja*");
         linhas.push(...ent.linhas.filter((l) => l !== cfg.endereco));
         linhas.push("", `💰 *Pagamento:* ${descricaoPagamento()}`);
         if (estado.pagamento === "PIX") linhas.push("_Aguardo a chave PIX para pagar._");
@@ -618,7 +661,7 @@ document.addEventListener("DOMContentLoaded", () => {
                 origem: "site",
                 cliente: $("#cli-nome").value.trim(),
                 telefone: $("#cli-telefone").value.trim(),
-                itens: c.itens.map(({ produto: p, qtd }) => ({ id: p.id, codigo: agroCodigoProduto(p), nome: p.nome, unidade: p.unidade, qtd, preco: p.preco })),
+                itens: c.itens.map(({ produto: p, qtd }) => ({ id: p.id, codigo: agroCodigoProduto(p), nome: p.nome, unidade: p.unidade, qtd, preco: agroPrecoUnit(p, qtd) })),
                 subtotal: c.subtotal, desconto: c.desconto, cupom: estado.cupom ? estado.cupom.codigo : "",
                 taxaEntrega: c.taxa, total: c.total,
                 entrega: estado.tipoEntrega === "entrega"
@@ -633,7 +676,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
         // Guarda os dados do cliente para a próxima compra
         try {
-            localStorage.setItem("agropet_cliente_v1", JSON.stringify({
+            localStorage.setItem("cb_cliente_v1", JSON.stringify({
                 nome: $("#cli-nome").value.trim(), telefone: $("#cli-telefone").value.trim(),
                 rua: $("#ent-rua").value.trim(), numero: $("#ent-numero").value.trim(), complemento: $("#ent-complemento").value.trim(),
                 referencia: $("#ent-referencia").value.trim(), bairro: $("#ent-bairro").value,
@@ -671,9 +714,8 @@ document.addEventListener("DOMContentLoaded", () => {
         const cat = categoriaDe(p.categoria);
         estado.detalheId = id;
         estado.detalheQtd = 1;
-        $("#det-arte").innerHTML = arteProduto(p);
+        $("#det-arte").innerHTML = faixaProduto(p) + arteProduto(p);
         $("#det-cat").textContent = cat.nome;
-        $("#det-cat").style.color = cat.cor;
         $("#det-nome").textContent = p.nome;
         $("#det-unidade").textContent = p.unidade || "";
         $("#det-unidade").hidden = !p.unidade;
@@ -683,7 +725,7 @@ document.addEventListener("DOMContentLoaded", () => {
         else if (esgotado(p)) { est.textContent = "Esgotado no momento — chame no WhatsApp para encomendar."; est.className = "det-estoque baixo"; }
         else if (Number(p.estoque) <= 3) { est.innerHTML = `<i class="fa-solid fa-fire"></i> Últimas ${p.estoque} unidades`; est.className = "det-estoque baixo"; }
         else { est.innerHTML = `<i class="fa-solid fa-circle-check"></i> Disponível para entrega`; est.className = "det-estoque"; }
-        $("#det-preco").innerHTML = `<span class="preco">${moeda(p.preco)}</span>${emOferta(p) ? `<span class="preco-antigo">${moeda(p.precoAntigo)}</span>` : ""}`;
+        $("#det-preco").innerHTML = precosProduto(p);
         $("#det-qtd").textContent = "1";
         $("#det-adicionar").disabled = esgotado(p);
         $("#det-codigo").textContent = `Código: ${agroCodigoProduto(p)}`;
@@ -729,7 +771,7 @@ document.addEventListener("DOMContentLoaded", () => {
             if (!$("#modal-detalhe").hidden) fecharDetalhe();
             else if ($("#sacolinha").classList.contains("aberta")) fecharSacolinha();
         }
-        if ((e.key === "Enter" || e.key === " ") && e.target.matches(".post-destaque")) { e.preventDefault(); abrirDetalhe(Number(e.target.dataset.abrir)); }
+        if ((e.key === "Enter" || e.key === " ") && e.target.matches(".post")) { e.preventDefault(); abrirDetalhe(Number(e.target.dataset.abrir)); }
     });
 
     $("#categorias-bar").addEventListener("click", (e) => {
@@ -830,7 +872,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
     // Preenche dados de um pedido anterior (conveniência para o cliente)
     try {
-        const cli = JSON.parse(localStorage.getItem("agropet_cliente_v1") || "null");
+        const cli = JSON.parse(localStorage.getItem("cb_cliente_v1") || "null");
         if (cli) {
             $("#cli-nome").value = cli.nome || "";
             $("#cli-telefone").value = cli.telefone || "";
@@ -851,14 +893,20 @@ document.addEventListener("DOMContentLoaded", () => {
     });
 
     // Altura real do cabeçalho (muda no celular) para a barra de categorias grudar logo abaixo
-    const medirHeader = () => document.documentElement.style.setProperty("--altura-header", `${$(".header").offsetHeight}px`);
+    // (e os links internos pararem logo abaixo do menu de categorias, que pode ter duas linhas)
+    const medirHeader = () => {
+        const raiz = document.documentElement;
+        raiz.style.setProperty("--altura-header", `${$(".header").offsetHeight}px`);
+        raiz.style.scrollPaddingTop = `${$(".header").offsetHeight + $(".categorias").offsetHeight + 14}px`;
+        ajustarSetas();
+    };
     window.addEventListener("resize", medirHeader);
 
     // ─── INICIALIZAÇÃO ───────────────────────────────────────────────────────
     aplicarConfig();
-    medirHeader();
-    if (document.fonts && document.fonts.ready) document.fonts.ready.then(medirHeader);
     if (estado.bairroSalvo && $(`#ent-bairro option[value="${estado.bairroSalvo}"]`)) $("#ent-bairro").value = estado.bairroSalvo;
     renderTudo();
     irParaEtapa(1);
+    medirHeader();
+    if (document.fonts && document.fonts.ready) document.fonts.ready.then(medirHeader);
 });

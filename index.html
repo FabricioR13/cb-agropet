@@ -4,13 +4,13 @@
 <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <meta name="description" content="Agropet Nossa Casa — rações, petiscos, acessórios, produtos agro e jardim em Cachoeirinha/RS. Monte sua sacolinha e finalize pelo WhatsApp." />
-    <meta name="theme-color" content="#2D2A7B" />
-    <title>Agropet Nossa Casa</title>
-    <link rel="icon" href="assets/logo-agropet.webp" type="image/webp" />
+    <meta name="description" content="Agropecuária CB — pet shop e agropecuária no Jardim Betânia, Cachoeirinha/RS, com tele-entrega. Monte sua sacolinha e finalize o pedido pelo WhatsApp." />
+    <meta name="theme-color" content="#E6FE0A" />
+    <title>Agropecuária CB · Catálogo</title>
+    <link rel="icon" href="assets/logo-cb.webp" type="image/webp" />
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Titan+One&family=Nunito:wght@400;600;700;800;900&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@800;900&family=Nunito:wght@400;600;700;800;900&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
     <link rel="stylesheet" href="style.css" />
 </head>
@@ -21,7 +21,7 @@
         <div class="container topbar-inner">
             <span class="topbar-aviso"><i class="fa-solid fa-truck-fast" aria-hidden="true"></i> <span id="aviso-topo"></span></span>
             <span class="topbar-info">
-                <span><i class="fa-regular fa-clock" aria-hidden="true"></i> <span id="horario-topo"></span></span>
+                <span class="topbar-horario"><i class="fa-regular fa-clock" aria-hidden="true"></i> <span id="horario-topo"></span></span>
                 <a id="whats-topo" href="#" target="_blank" rel="noopener"><i class="fa-brands fa-whatsapp" aria-hidden="true"></i> <span id="telefone-topo"></span></a>
             </span>
         </div>
@@ -30,16 +30,16 @@
     <header class="header">
         <div class="container header-inner">
             <a href="#inicio" class="marca" aria-label="Início">
-                <img id="logo-img" src="assets/logo-agropet.webp" alt="Agropet Nossa Casa" width="56" height="56">
+                <img id="logo-img" src="assets/logo-cb.webp" alt="Agropecuária CB" width="56" height="56">
                 <span class="marca-texto">
-                    <strong id="nome-loja">Agropet Nossa Casa</strong>
+                    <strong id="nome-loja">Agropecuária CB</strong>
                     <small id="slogan-loja"></small>
                 </span>
             </a>
 
             <label class="busca" role="search">
                 <i class="fa-solid fa-magnifying-glass" aria-hidden="true"></i>
-                <input id="busca-input" type="search" placeholder="Buscar ração, petisco, semente..." aria-label="Buscar produto" autocomplete="off">
+                <input id="busca-input" type="search" placeholder="Buscar ração, petisco, antipulgas..." aria-label="Buscar produto" autocomplete="off">
             </label>
 
             <button class="btn-sacolinha" id="btn-abrir-sacolinha" type="button" aria-label="Abrir sacolinha">
@@ -60,19 +60,19 @@
     </nav>
 
     <main>
-        <!-- HERO no estilo das postagens -->
+        <!-- HERO no formato das postagens "MEGA PROMOÇÃO" -->
         <section class="hero" id="inicio">
             <div class="container hero-inner">
                 <div class="hero-texto">
-                    <span class="hero-tag" id="hero-tag"></span>
                     <h1 class="titulo-post" id="hero-titulo"></h1>
+                    <span class="hero-tag" id="hero-tag"></span>
                     <p class="hero-sub" id="hero-sub"></p>
                     <div class="hero-botoes">
-                        <a href="#ofertas" class="btn btn-vermelho"><i class="fa-solid fa-bolt" aria-hidden="true"></i> Ver ofertas</a>
+                        <a href="#ofertas" class="btn btn-preto"><i class="fa-solid fa-bolt" aria-hidden="true"></i> Ver promoções</a>
                         <a href="#produtos" class="btn btn-claro"><i class="fa-solid fa-paw" aria-hidden="true"></i> Todos os produtos</a>
                     </div>
                     <ul class="hero-selos">
-                        <li><i class="fa-solid fa-truck" aria-hidden="true"></i> Entrega grátis nas proximidades</li>
+                        <li><i class="fa-solid fa-truck-fast" aria-hidden="true"></i> Tele-entrega</li>
                         <li><i class="fa-solid fa-store" aria-hidden="true"></i> Retire na loja</li>
                         <li><i class="fa-brands fa-pix" aria-hidden="true"></i> PIX, cartão ou dinheiro</li>
                     </ul>
@@ -85,7 +85,7 @@
         <section class="secao secao-ofertas" id="ofertas" hidden>
             <div class="container">
                 <div class="secao-topo">
-                    <h2 class="titulo-post titulo-post--sm"><i class="fa-solid fa-bolt" aria-hidden="true"></i> Oferta relâmpago</h2>
+                    <div><h2 class="titulo-post titulo-post--sm">Mega promoção</h2><p class="sobretitulo">Oferta válida até acabar o estoque</p></div>
                     <div class="carrossel-setas">
                         <button type="button" class="seta" data-dir="-1" aria-label="Anterior"><i class="fa-solid fa-chevron-left"></i></button>
                         <button type="button" class="seta" data-dir="1" aria-label="Próximo"><i class="fa-solid fa-chevron-right"></i></button>
@@ -109,7 +109,7 @@
                             <option value="destaque">Destaques</option>
                             <option value="menor">Menor preço</option>
                             <option value="maior">Maior preço</option>
-                            <option value="ofertas">Ofertas primeiro</option>
+                            <option value="ofertas">Promoções primeiro</option>
                             <option value="nome">Nome (A-Z)</option>
                         </select>
                     </label>
@@ -124,8 +124,8 @@
                 <h2 class="titulo-post titulo-post--sm titulo-centro">Comprar é fácil!</h2>
                 <ol class="passos">
                     <li><span class="passo-icone"><i class="fa-solid fa-hand-pointer"></i></span><strong>Escolha</strong><p>Navegue pelas categorias ou busque o que precisa.</p></li>
-                    <li><span class="passo-icone"><i class="fa-solid fa-bag-shopping"></i></span><strong>Monte a sacolinha</strong><p>Ajuste as quantidades e aplique seu cupom.</p></li>
-                    <li><span class="passo-icone"><i class="fa-solid fa-truck-fast"></i></span><strong>Entrega ou retirada</strong><p>Receba em casa ou agende para buscar na loja.</p></li>
+                    <li><span class="passo-icone"><i class="fa-solid fa-bag-shopping"></i></span><strong>Monte a sacolinha</strong><p>Ajuste as quantidades e aproveite o “leve 2”.</p></li>
+                    <li><span class="passo-icone"><i class="fa-solid fa-truck-fast"></i></span><strong>Entrega ou retirada</strong><p>Receba em casa pela tele-entrega ou agende para buscar na loja.</p></li>
                     <li><span class="passo-icone passo-icone--whats"><i class="fa-brands fa-whatsapp"></i></span><strong>Finalize no WhatsApp</strong><p>Seu pedido chega pronto pra gente confirmar o pagamento.</p></li>
                 </ol>
             </div>
@@ -135,7 +135,7 @@
         <section class="secao secao-loja" id="loja">
             <div class="container loja-inner">
                 <div class="loja-card">
-                    <img src="assets/logo-agropet.webp" alt="" class="loja-logo" id="loja-logo">
+                    <img src="assets/logo-cb.webp" alt="" class="loja-logo" id="loja-logo">
                     <div>
                         <h2 class="secao-titulo">Venha nos visitar</h2>
                         <p class="loja-linha"><i class="fa-solid fa-location-dot"></i> <span id="loja-endereco"></span></p>
@@ -167,7 +167,7 @@
             <small id="barra-qtd">0 itens</small>
             <strong id="barra-total">R$ 0,00</strong>
         </div>
-        <button type="button" class="btn btn-amarelo" id="barra-abrir"><i class="fa-solid fa-bag-shopping"></i> Ver sacolinha</button>
+        <button type="button" class="btn btn-lima" id="barra-abrir"><i class="fa-solid fa-bag-shopping"></i> Ver sacolinha</button>
     </div>
 
     <!-- Aviso rápido -->
@@ -196,7 +196,7 @@
                 <div class="cupom">
                     <div class="cupom-linha">
                         <input type="text" id="cupom-input" placeholder="Tem cupom de desconto?" autocomplete="off">
-                        <button type="button" class="btn btn-indigo btn-sm" id="cupom-btn">Aplicar</button>
+                        <button type="button" class="btn btn-preto btn-sm" id="cupom-btn">Aplicar</button>
                     </div>
                     <p class="cupom-msg" id="cupom-msg"></p>
                 </div>
@@ -207,7 +207,7 @@
                 <h4 class="etapa-titulo">Como você quer receber?</h4>
                 <div class="opcoes-entrega" role="radiogroup">
                     <button type="button" class="opcao-entrega ativa" data-tipo="entrega" role="radio" aria-checked="true">
-                        <i class="fa-solid fa-truck-fast"></i><strong>Entrega</strong><small>Levamos até você</small>
+                        <i class="fa-solid fa-truck-fast"></i><strong>Tele-entrega</strong><small>Levamos até você</small>
                     </button>
                     <button type="button" class="opcao-entrega" data-tipo="retirada" role="radio" aria-checked="false">
                         <i class="fa-solid fa-store"></i><strong>Retirada</strong><small>Busque na loja</small>
@@ -223,7 +223,7 @@
                     <div class="campo-linha">
                         <div class="campo campo--grande">
                             <label for="ent-rua">Rua / Avenida</label>
-                            <input type="text" id="ent-rua" placeholder="Ex.: Estrada dos Caetanos" autocomplete="address-line1">
+                            <input type="text" id="ent-rua" placeholder="Nome da sua rua" autocomplete="address-line1">
                         </div>
                         <div class="campo">
                             <label for="ent-numero">Número</label>
@@ -274,7 +274,7 @@
                 </div>
                 <div class="campo">
                     <label for="obs-input">Observações <em>(opcional)</em></label>
-                    <textarea id="obs-input" rows="2" placeholder="Ex.: sabor do sachê, tamanho da coleira..."></textarea>
+                    <textarea id="obs-input" rows="2" placeholder="Ex.: peso do pet para o antipulgas, sabor do sachê..."></textarea>
                 </div>
             </section>
 
@@ -303,7 +303,7 @@
                 <div class="sucesso">
                     <div class="sucesso-icone"><i class="fa-brands fa-whatsapp"></i></div>
                     <h4>Quase lá!</h4>
-                    <p>Abrimos o WhatsApp da loja com o seu pedido. É só <strong>tocar em enviar</strong> na conversa para confirmar o pagamento.</p>
+                    <p>Abrimos o WhatsApp da loja com o seu pedido já escrito. É só <strong>tocar em enviar</strong> na conversa para combinar o pagamento.</p>
                     <div class="sucesso-codigo"><small>Código do pedido</small><strong id="sucesso-codigo">—</strong></div>
                     <a class="btn btn-verde btn-bloco" id="sucesso-whats" href="#" target="_blank" rel="noopener"><i class="fa-brands fa-whatsapp"></i> Abrir o WhatsApp de novo</a>
                     <button type="button" class="btn btn-contorno btn-bloco" id="btn-novo-pedido">Fazer outro pedido</button>
@@ -320,7 +320,7 @@
             </div>
             <div class="nav-etapas">
                 <button type="button" class="btn btn-contorno" id="btn-voltar" hidden><i class="fa-solid fa-arrow-left"></i> Voltar</button>
-                <button type="button" class="btn btn-vermelho btn-cresce" id="btn-avancar">Continuar <i class="fa-solid fa-arrow-right"></i></button>
+                <button type="button" class="btn btn-preto btn-cresce" id="btn-avancar">Continuar <i class="fa-solid fa-arrow-right"></i></button>
                 <button type="button" class="btn btn-verde btn-cresce" id="btn-finalizar" hidden><i class="fa-brands fa-whatsapp"></i> Finalizar no WhatsApp</button>
             </div>
         </div>
@@ -344,7 +344,7 @@
                     <span id="det-qtd">1</span>
                     <button type="button" id="det-mais" aria-label="Aumentar">+</button>
                 </div>
-                <button type="button" class="btn btn-vermelho btn-cresce" id="det-adicionar"><i class="fa-solid fa-bag-shopping"></i> Colocar na sacolinha</button>
+                <button type="button" class="btn btn-preto btn-cresce" id="det-adicionar"><i class="fa-solid fa-bag-shopping"></i> Colocar na sacolinha</button>
             </div>
             <p class="det-codigo" id="det-codigo"></p>
         </div>
